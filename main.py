@@ -22,11 +22,11 @@ keep_alive()
 
 # إعدادات البوت
 TOKEN = os.getenv("TOKEN")
-GUILD_ID = '1012893019608973382'  # ID الخاص بالسيرفر
-REGISTER_CHANNEL_ID = '1098581919551209622'  # ID الخاص بالشات المحددة لتسجيل الأوامر
-LOG_CHANNEL_ID = '1098766610048749578'  # ID الخاص بالشات المحددة لتسجيل الأعضاء المسجلين
-REMOVE_ROLE_ID = '1098371598731452426'  # ID الرتبة التي سيتم إزالتها
-GIVE_ROLE_ID = '1098833285662134362'  # ID الرتبة التي سيتم إعطاؤها
+GUILD_ID = '1276712128505446490'  # ID الخاص بالسيرفر
+REGISTER_CHANNEL_ID = '1277774462527475763'  # ID الخاص بالشات المحددة لتسجيل الأوامر
+LOG_CHANNEL_ID = '1277773976483004476'  # ID الخاص بالشات المحددة لتسجيل الأعضاء المسجلين
+REMOVE_ROLE_ID = '1277773566523215922'  # ID الرتبة التي سيتم إزالتها
+GIVE_ROLE_ID = '1277773778461392937'  # ID الرتبة التي سيتم إعطاؤها
 REGISTERED_USERS_FILE = 'registered_users.json'
 ADMIN_ID = ['826571466815569970']  # ID الخاص بك
 
@@ -83,7 +83,7 @@ async def on_message(message):
                     await member.add_roles(role_to_give)
 
                 # إرسال رسالة تأكيد في الخاص
-                await message.author.send('You have been successfully registered, and your roles have been updated.')
+                await message.author.send('You have been successfully registered, your roles have been updated.<:wow:1275021465531449355>')
 
                 # إرسال رسالة إلى الشات المحدد
                 current_time = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
@@ -92,8 +92,8 @@ async def on_message(message):
             await message.author.send(f'Please use the registration command in this channel: {register_channel.mention}')
     elif message.content.startswith('&send'):
         if message.author.id == int(ADMIN_ID):
-            await register_channel.send("**HeLLo @everyone type &reg to be registered and get <@&1098833285662134362> role**")
+            await register_channel.send("**<a:kroos:1202320599062683679> HeLLo @everyone type &reg to be registered and get <@&1277773778461392937> role**")
         else:
-            await message.author.send('You do not have permission to execute this command.')
+            await message.author.send('<:TDC_chloe_sideeye:786392061930504193> You do not have permission to execute this command.')
 
 bot.run(TOKEN)
