@@ -18,7 +18,7 @@ intents.message_content = True  # يجب تفعيل هذا في إعدادات �
 # تهيئة البوت
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-keep_alive()
+
 
 # إعدادات البوت
 TOKEN = os.getenv("TOKEN")
