@@ -4,15 +4,12 @@ from threading import Thread
 app = Flask('')
 
 @app.route('/')
-def home():
-    return "I am alive!"
-    def run():
-        app.run(host="0.0.0.0", port=8080)
+def main():
+    return "Ready!"
 
-    def keep_alive():
-        server = Thread(target=run)
-        server.start() 
+def run():
+    app.run(host="0.0.0.0", port=8080)
 
 def keep_alive():
-    t = Thread(target=run)
-    t.start()
+    server = Thread(target=run)
+    server.start() 
