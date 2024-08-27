@@ -91,7 +91,7 @@ async def on_message(message):
         else:
             await message.author.send(f'Please use the registration command in this channel: {register_channel.mention}')
     elif message.content.startswith('&send'):
-        if message.author.id == int(ADMIN_ID):
+        if message.author.id == int(826571466815569970):
             await register_channel.send("**🔊 HeLLo @everyone type &reg to be registered and get <@&1277773778461392937> role**")
         else:
             await message.author.send('🇪🇭 You do not have permission to execute this command.')
