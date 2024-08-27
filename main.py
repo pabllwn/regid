@@ -68,7 +68,7 @@ async def on_message(message):
     if message.content == '&reg':
         if message.channel.id == int(REGISTER_CHANNEL_ID):
             if str(message.author.id) in registered_users:
-                await message.author.send('You are already registered.')
+                await message.author.send('You are already registered ✅✅.')
             else:
                 registered_users[str(message.author.id)] = True
                 with open(REGISTERED_USERS_FILE, 'w') as file:
@@ -83,7 +83,7 @@ async def on_message(message):
                     await member.add_roles(role_to_give)
 
                 # إرسال رسالة تأكيد في الخاص
-                await message.author.send('You have been successfully registered, your roles have been updated.<:wow:1275021465531449355>')
+                await message.author.send('You have been successfully registered, your roles have been updated.✅')
 
                 # إرسال رسالة إلى الشات المحدد
                 current_time = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
@@ -92,8 +92,8 @@ async def on_message(message):
             await message.author.send(f'Please use the registration command in this channel: {register_channel.mention}')
     elif message.content.startswith('&send'):
         if message.author.id == int(ADMIN_ID):
-            await register_channel.send("**<a:kroos:1202320599062683679> HeLLo @everyone type &reg to be registered and get <@&1277773778461392937> role**")
+            await register_channel.send("**🔊 HeLLo @everyone type &reg to be registered and get <@&1277773778461392937> role**")
         else:
-            await message.author.send('<:TDC_chloe_sideeye:786392061930504193> You do not have permission to execute this command.')
+            await message.author.send('🇪🇭 You do not have permission to execute this command.')
 
 bot.run(TOKEN)
