@@ -2,13 +2,13 @@ import discord
 from discord.ext import commands
 from collections import deque
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.messages = True
 intents.message_content = True
 intents.guilds = True
 intents.guild_messages = True
 intents.voice_states = True
-intents.guild_message_reactions = True
+intents.message_reactions = True
 intents.moderation = True
 
 bot = commands.Bot(command_prefix='&', intents=intents)
