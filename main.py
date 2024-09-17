@@ -22,6 +22,7 @@ last_claims = {}
 # Role ID that can use commands
 ALLOWED_ROLE_ID = 1285511769447600138
 COOLDOWN_PERIOD = 86400
+MENTION_ROLES = [1280007060930428969, 1278359492676943912]
 
 # Remove the default help command
 bot.remove_command('help')
@@ -39,6 +40,16 @@ def has_role(user):
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
+
+@bot.event
+async def on_message(message):
+    # Ignore messages from the bot and messages with unknown commands starting with the prefix
+    if message.author == bot.user or not message.content.startswith('$'):
+        return
+    ctx = await bot.get_context(message)
+    if not ctx.valid:
+        return
+    await bot.process_commands(message)
 
 @bot.command(name='setlogchannel')
 @is_admin_or_role()
@@ -107,7 +118,11 @@ async def daily(ctx):
     button = discord.ui.Button(label="Claim Reward", style=discord.ButtonStyle.primary, custom_id="claim_reward", emoji="🎁")
     view.add_item(button)
 
-    await ctx.send(embed=embed, view=view)
+    message = await ctx.send(embed=embed, view=view)
+
+    # Delete the message after 3 minutes
+    await asyncio.sleep(180)
+    await message.delete()
 
 @bot.command(name='setrewards')
 @is_admin_or_role()
@@ -149,10 +164,17 @@ async def on_interaction(interaction):
         reward_data['rewards'] = user_rewards
         last_claims[user.id] = today
 
-        # Notify server owner
+        # Notify mentioned roles
         guild = interaction.guild
-        owner = guild.owner
-        await owner.send(f"{user.mention} claimed a reward: {claimed_reward}")
+        role_mentions = ' '.join([f'<@&{role_id}>' for role_id in MENTION_ROLES])
+        embed = discord.Embed(
+            title="Reward Claimed",
+            description=f"{interaction.user.mention} has claimed a reward: {claimed_reward}",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="Reward", value=claimed_reward, inline=False)
+        embed.add_field(name="Claimed by", value=interaction.user.mention, inline=False)
+        await guild.system_channel.send(content=role_mentions, embed=embed)
 
         await interaction.response.send_message(f"You claimed: {claimed_reward}", ephemeral=True)
 
@@ -160,6 +182,8 @@ async def on_interaction(interaction):
 async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("You don't have permission to use this command.")
+    elif isinstance(error, commands.CommandNotFound):
+        pass  # Ignore unknown commands
     else:
         await ctx.send(f"An error occurred: {error}")
 
