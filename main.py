@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import os
 import datetime
+import random
 from keep_alive import keep_alive
 
 # Set up intents
@@ -16,6 +17,7 @@ bot = commands.Bot(command_prefix='$', intents=intents)
 TOKEN = os.getenv("TOKEN")
 log_channel_id = None
 reward_data = {}
+last_claims = {}
 
 # Role ID that can use commands
 ALLOWED_ROLE_ID = 1285511769447600138
@@ -30,6 +32,9 @@ def is_admin_or_role():
         return ctx.author.guild_permissions.administrator or \
                any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles)
     return commands.check(predicate)
+
+def has_role(ctx):
+    return any(role.id == ALLOWED_ROLE_ID for role in ctx.author.roles)
 
 @bot.event
 async def on_ready():
@@ -71,30 +76,36 @@ async def on_message_delete(message):
 
 @bot.command(name='daily')
 async def daily(ctx):
+    if not has_role(ctx):
+        await ctx.send("You do not have the required role to claim rewards.")
+        return
+
     user_id = ctx.author.id
     today = datetime.date.today()
-    user_data = reward_data.get(user_id, {})
 
-    last_claim = user_data.get('last_claim', today - datetime.timedelta(days=1))
+    user_data = reward_data.get('rewards', [])
+    last_claim = last_claims.get(user_id, today - datetime.timedelta(days=1))
+
     if (today - last_claim).total_seconds() < COOLDOWN_PERIOD:
         await ctx.send("You must wait 24 hours before claiming another reward.")
         return
 
-    if not user_data.get('rewards', []):
+    if not user_data:
         await ctx.send("No rewards available to claim.")
         return
 
-    reward_info = '\n'.join([f"{idx + 1}. {reward}" for idx, reward in enumerate(user_data['rewards'])])
+    # Prepare embed
     embed = discord.Embed(
         title="Daily Rewards",
-        description=f"Available rewards:\n{reward_info}",
+        description=f"Available rewards: {', '.join(user_data)}",
         color=discord.Color.green()
     )
+    embed.add_field(name="Rewards Remaining", value=len(user_data), inline=False)
 
+    # Create the button to claim a reward
     view = discord.ui.View()
-    for idx, reward in enumerate(user_data['rewards']):
-        button = discord.ui.Button(label=f"Claim Reward {idx + 1}", style=discord.ButtonStyle.primary, custom_id=f"claim_{idx}")
-        view.add_item(button)
+    button = discord.ui.Button(label="Claim Reward", style=discord.ButtonStyle.primary, custom_id="claim_reward", emoji="🎁")
+    view.add_item(button)
 
     await ctx.send(embed=embed, view=view)
 
@@ -115,25 +126,36 @@ async def add_rewards(ctx, day: int, *rewards):
 
 @bot.event
 async def on_interaction(interaction):
-    if interaction.type == discord.InteractionType.component:
-        if interaction.data['custom_id'].startswith('claim_'):
-            user_id = interaction.user.id
-            reward_index = int(interaction.data['custom_id'].split('_')[1])
-            user_data = reward_data.get(user_id, {})
+    if interaction.type == discord.InteractionType.component and interaction.data['custom_id'] == 'claim_reward':
+        user_id = interaction.user.id
 
-            if not user_data.get('rewards'):
-                await interaction.response.send_message("No rewards available to claim.")
-                return
+        if not has_role(interaction):
+            await interaction.response.send_message("You do not have the required role to claim rewards.")
+            return
 
-            if reward_index >= len(user_data['rewards']):
-                await interaction.response.send_message("Invalid reward selection.")
-                return
+        today = datetime.date.today()
+        user_rewards = reward_data.get('rewards', [])
 
-            claimed_reward = user_data['rewards'].pop(reward_index)
-            user_data['last_claim'] = datetime.date.today()
-            reward_data[user_id] = user_data
+        if not user_rewards:
+            await interaction.response.send_message("No rewards available.")
+            return
 
-            await interaction.response.send_message(f"You claimed: {claimed_reward}")
+        if (today - last_claims.get(user_id, today - datetime.timedelta(days=1))).total_seconds() < COOLDOWN_PERIOD:
+            await interaction.response.send_message("You must wait 24 hours before claiming another reward.")
+            return
+
+        # Claim a random reward
+        claimed_reward = random.choice(user_rewards)
+        user_rewards.remove(claimed_reward)
+        reward_data['rewards'] = user_rewards
+        last_claims[user_id] = today
+
+        # Notify server owner
+        guild = interaction.guild
+        owner = guild.owner
+        await owner.send(f"{interaction.user.mention} claimed a reward: {claimed_reward}")
+
+        await interaction.response.send_message(f"You claimed: {claimed_reward}")
 
 @bot.event
 async def on_command_error(ctx, error):
