@@ -35,9 +35,12 @@ async def join(ctx):
     if ctx.author.voice:
         channel = ctx.author.voice.channel
         if ctx.voice_client is not None:
-            return await ctx.voice_client.move_to(channel)
-
-        await channel.connect()
+            if ctx.voice_client.channel == channel:
+                await ctx.send("I am already in your voice channel.")
+                return
+            await ctx.voice_client.move_to(channel)
+        else:
+            await channel.connect()
         await ctx.send(f'Joined {channel.name}')
     else:
         await ctx.send("You need to be in a voice channel for me to join!")
@@ -48,7 +51,7 @@ async def on_message_delete(message):
 
     # Add deleted message to snipe queue
     if message.content:
-        snipe_queue.append((message.content, message.author.name, message.channel.name))
+        snipe_queue.append((message.content, message.author.name, message.channel.id))
 
     if log_channel_id is None:
         return
@@ -59,8 +62,9 @@ async def on_message_delete(message):
         return
 
     # Fetch audit logs to find out who deleted the message
-    fetched_logs = await message.guild.audit_logs(limit=1, action=discord.AuditLogAction.message_delete).flatten()
-    deleter = fetched_logs[0].user if fetched_logs else "Unknown"
+    async for entry in message.guild.audit_logs(limit=1, action=discord.AuditLogAction.message_delete):
+        deleter = entry.user if entry else "Unknown"
+        break  # Exit loop after first entry
 
     # Create and send the embed to the log channel
     embed = discord.Embed(
@@ -77,17 +81,17 @@ async def on_message_delete(message):
 
 @bot.command(name='snipe')
 async def snipe(ctx):
-    channel = ctx.channel.name  # Get the current channel name
+    channel_id = ctx.channel.id  # Get the current channel ID
     # Filter messages to show only those from the current channel
-    filtered_messages = [msg for msg in snipe_queue if msg[2] == channel]
+    filtered_messages = [msg for msg in snipe_queue if msg[2] == channel_id]
 
     if not filtered_messages:
         await ctx.send("No messages to snipe in this channel!")
         return
 
     embed = discord.Embed(title="Last 5 Deleted Messages", color=discord.Color.blue())
-    for i, (content, author, channel) in enumerate(filtered_messages, 1):
-        embed.add_field(name=f"{i}. {author} in {channel}", value=content, inline=False)
+    for i, (content, author, _) in enumerate(filtered_messages, 1):
+        embed.add_field(name=f"{i}. {author}", value=content, inline=False)
 
     await ctx.send(embed=embed)
 
