@@ -3,6 +3,7 @@ from discord.ext import commands
 import os
 import datetime
 import random
+import asyncio
 from keep_alive import keep_alive
 
 # Set up intents
@@ -107,7 +108,7 @@ async def daily(ctx):
 
     # Prepare embed
     embed = discord.Embed(
-        title="Daily Rewards",
+        title="🎁 Daily Rewards",
         description=f"Available rewards: {', '.join(user_rewards)}",
         color=discord.Color.green()
     )
@@ -115,7 +116,12 @@ async def daily(ctx):
 
     # Create the button to claim a reward
     view = discord.ui.View()
-    button = discord.ui.Button(label="Claim Reward", style=discord.ButtonStyle.primary, custom_id="claim_reward", emoji="🎁")
+    button = discord.ui.Button(
+        label="Claim Reward",
+        style=discord.ButtonStyle.primary,
+        custom_id="claim_reward",
+        emoji="<a:11pm_gift:1263184546049082498>"
+    )
     view.add_item(button)
 
     message = await ctx.send(embed=embed, view=view)
@@ -168,15 +174,17 @@ async def on_interaction(interaction):
         guild = interaction.guild
         role_mentions = ' '.join([f'<@&{role_id}>' for role_id in MENTION_ROLES])
         embed = discord.Embed(
-            title="Reward Claimed",
-            description=f"{interaction.user.mention} has claimed a reward: {claimed_reward}",
+            title="🎉 Reward Claimed",
+            description=f"{interaction.user.mention} has claimed a reward: {claimed_reward} <a:11pm_giveaway1:1070822226003234906>",
             color=discord.Color.blue()
         )
         embed.add_field(name="Reward", value=claimed_reward, inline=False)
         embed.add_field(name="Claimed by", value=interaction.user.mention, inline=False)
+
+        # Send the message with role mentions
         await guild.system_channel.send(content=role_mentions, embed=embed)
 
-        await interaction.response.send_message(f"You claimed: {claimed_reward}", ephemeral=True)
+        await interaction.response.send_message(f"You claimed: {claimed_reward} <a:11pm_sheck:1051708217832513536>", ephemeral=True)
 
 @bot.event
 async def on_command_error(ctx, error):
