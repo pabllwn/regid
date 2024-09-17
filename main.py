@@ -1,99 +1,103 @@
-import json
-import os
 import discord
 from discord.ext import commands
-from keep_alive import keep_alive
+from collections import deque
 
-keep_alive()
-# إعدادات Discord Intents
 intents = discord.Intents.default()
-intents.members = True
 intents.messages = True
+intents.message_content = True
 intents.guilds = True
-intents.reactions = True
-intents.presences = True
+intents.guild_messages = True
 intents.voice_states = True
-intents.message_content = True  # يجب تفعيل هذا في إعدادات البوت على Discord Developer Portal
+intents.guild_message_reactions = True
+intents.moderation = True
 
-# تهيئة البوت
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = commands.Bot(command_prefix='&', intents=intents)
 
-
-
-# إعدادات البوت
 TOKEN = os.getenv("TOKEN")
-GUILD_ID = '1276712128505446490'  # ID الخاص بالسيرفر
-REGISTER_CHANNEL_ID = '1277774462527475763'  # ID الخاص بالشات المحددة لتسجيل الأوامر
-LOG_CHANNEL_ID = '1277773976483004476'  # ID الخاص بالشات المحددة لتسجيل الأعضاء المسجلين
-REMOVE_ROLE_ID = '1277773566523215922'  # ID الرتبة التي سيتم إزالتها
-GIVE_ROLE_ID = '1277773778461392937'  # ID الرتبة التي سيتم إعطاؤها
-REGISTERED_USERS_FILE = 'registered_users.json'
-ADMIN_ID = ['826571466815569970']  # ID الخاص بك
+log_channel_id = None  # Will be set by the user via command
+snipe_queue = deque(maxlen=5)  # Stores the last 5 deleted messages
 
-# تحميل المستخدمين المسجلين من الملف
-if os.path.exists(REGISTERED_USERS_FILE):
-    with open(REGISTERED_USERS_FILE, 'r') as file:
-        registered_users = json.load(file)
-else:
-    registered_users = {}
 
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
 
+
+# Command to set the logging channel
+@bot.command(name='setlogchannel')
+@commands.has_permissions(administrator=True)
+async def set_log_channel(ctx, channel: discord.TextChannel):
+    global log_channel_id
+    log_channel_id = channel.id
+    await ctx.send(f'Log channel set to {channel.mention}')
+
+
+# Join a specific voice channel
+@bot.command(name='join')
+@commands.has_permissions(administrator=True)
+async def join(ctx, channel: discord.VoiceChannel):
+    if ctx.voice_client is not None:
+        return await ctx.voice_client.move_to(channel)
+
+    await channel.connect()
+    await ctx.send(f'Joined {channel.name}')
+
+
+# Log deleted messages with who deleted it, what was deleted, and when
 @bot.event
-async def on_message(message):
-    if message.author == bot.user:
+async def on_message_delete(message):
+    global log_channel_id
+
+    # Store deleted message for snipe command
+    if message.content:
+        snipe_queue.append((message.content, message.author.name, message.channel.name))
+
+    if log_channel_id is None:
         return
 
-    guild = bot.get_guild(int(GUILD_ID))
-    if guild is None:
-        print("Guild not found!")
+    log_channel = bot.get_channel(log_channel_id)
+    if not log_channel:
         return
 
-    register_channel = bot.get_channel(int(REGISTER_CHANNEL_ID))
-    log_channel = bot.get_channel(int(LOG_CHANNEL_ID))
-    if register_channel is None:
-        print("Register channel not found!")
+    # Fetch who deleted the message
+    fetched_logs = await message.guild.audit_logs(limit=1, action=discord.AuditLogAction.message_delete).flatten()
+    deleter = fetched_logs[0].user if fetched_logs else "Unknown"
+
+    # Embed the deleted message details
+    embed = discord.Embed(
+        title="Message Deleted",
+        color=discord.Color.red(),
+        description=f"A message was deleted in {message.channel.mention}"
+    )
+    embed.add_field(name="Message", value=message.content or "No content", inline=False)
+    embed.add_field(name="Deleted by", value=str(deleter), inline=False)
+    embed.add_field(name="Time", value=message.created_at.strftime("%Y-%m-%d %H:%M:%S"), inline=False)
+    embed.set_footer(text=f"User: {message.author.name} | User ID: {message.author.id}")
+
+    await log_channel.send(embed=embed)
+
+
+# Command to snipe the last 5 deleted messages
+@bot.command(name='snipe')
+async def snipe(ctx):
+    if not snipe_queue:
+        await ctx.send("No messages to snipe!")
         return
-    if log_channel is None:
-        print("Log channel not found!")
-        return
 
-    member = guild.get_member(message.author.id)
-    if member is None:
-        print("Member not found!")
-        return
+    embed = discord.Embed(title="Last 5 Deleted Messages", color=discord.Color.blue())
+    for i, (content, author, channel) in enumerate(snipe_queue, 1):
+        embed.add_field(name=f"{i}. {author} in {channel}", value=content, inline=False)
 
-    if message.content == '&reg':
-        if message.channel.id == int(REGISTER_CHANNEL_ID):
-            if str(message.author.id) in registered_users:
-                await message.author.send('You are already registered ✅✅.')
-            else:
-                registered_users[str(message.author.id)] = True
-                with open(REGISTERED_USERS_FILE, 'w') as file:
-                    json.dump(registered_users, file)
+    await ctx.send(embed=embed)
 
-                # إعطاء الدور الجديد وإزالة الدور القديم
-                role_to_remove = guild.get_role(int(REMOVE_ROLE_ID))
-                role_to_give = guild.get_role(int(GIVE_ROLE_ID))
-                if role_to_remove:
-                    await member.remove_roles(role_to_remove)
-                if role_to_give:
-                    await member.add_roles(role_to_give)
 
-                # إرسال رسالة تأكيد في الخاص
-                await message.author.send('You have been successfully registered, your roles have been updated.✅')
+# Error handling for permission errors
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.MissingPermissions):
+        await ctx.send("You don't have permission to use this command.")
+    else:
+        raise error
 
-                # إرسال رسالة إلى الشات المحدد
-                current_time = message.created_at.strftime('%Y-%m-%d %H:%M:%S')
-                await log_channel.send(f'{message.author.mention} has been successfully registered at {current_time}.')
-        else:
-            await message.author.send(f'Please use the registration command in this channel: {register_channel.mention}')
-    elif message.content.startswith('&send'):
-        if message.author.id == int(826571466815569970):
-            await register_channel.send("**🔊 HeLLo @everyone type &reg to be registered and get <@&1277773778461392937> role**")
-        else:
-            await message.author.send('🇪🇭 You do not have permission to execute this command.')
 
 bot.run(TOKEN)
