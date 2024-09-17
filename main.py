@@ -8,10 +8,9 @@ intents.message_content = True
 intents.guilds = True
 intents.guild_messages = True
 intents.voice_states = True
-intents.message_reactions = True
 intents.moderation = True
 
-bot = commands.Bot(command_prefix='&', intents=intents)
+bot = commands.Bot(command_prefix='$', intents=intents)
 
 TOKEN = os.getenv("TOKEN")
 log_channel_id = None  # Will be set by the user via command
