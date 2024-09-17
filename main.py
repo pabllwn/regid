@@ -1,25 +1,27 @@
 import discord
 from discord.ext import commands
-from collections import deque
 import os
 import datetime
 from keep_alive import keep_alive
 
-intents = discord.Intents.all()
+# Set up intents
+intents = discord.Intents.default()
 intents.messages = True
 intents.message_content = True
 
+# Initialize bot
 bot = commands.Bot(command_prefix='$', intents=intents)
 
+# Token and global variables
 TOKEN = os.getenv("TOKEN")
 log_channel_id = None
-snipe_queue = deque(maxlen=5)
 reward_data = {}
 
 # Role ID that can use commands
 ALLOWED_ROLE_ID = 1285511769447600138
 COOLDOWN_PERIOD = 86400
 
+# Check for admin or role permissions
 def is_admin_or_role():
     def predicate(ctx):
         return ctx.author.guild_permissions.administrator or \
@@ -37,29 +39,8 @@ async def set_log_channel(ctx, channel: discord.TextChannel):
     log_channel_id = channel.id
     await ctx.send(f'Log channel set to {channel.mention}')
 
-@bot.command(name='join')
-@is_admin_or_role()
-async def join(ctx):
-    if ctx.author.voice:
-        channel = ctx.author.voice.channel
-        if ctx.voice_client is not None:
-            if ctx.voice_client.channel == channel:
-                await ctx.send("I am already in your voice channel.")
-                return
-            await ctx.voice_client.move_to(channel)
-        else:
-            await channel.connect()
-        await ctx.send(f'Joined {channel.name}')
-    else:
-        await ctx.send("You need to be in a voice channel for me to join!")
-
 @bot.event
 async def on_message_delete(message):
-    global log_channel_id
-
-    if message.content:
-        snipe_queue.append((message.content, message.author.name, message.channel.id))
-
     if log_channel_id is None:
         return
 
@@ -68,6 +49,7 @@ async def on_message_delete(message):
         print(f"Couldn't find log channel with ID {log_channel_id}")
         return
 
+    # Get the user who deleted the message
     async for entry in message.guild.audit_logs(limit=1, action=discord.AuditLogAction.message_delete):
         deleter = entry.user if entry else "Unknown"
         break
@@ -83,21 +65,6 @@ async def on_message_delete(message):
     embed.set_footer(text=f"User: {message.author.name} | User ID: {message.author.id}")
 
     await log_channel.send(embed=embed)
-
-@bot.command(name='snipe')
-async def snipe(ctx):
-    channel_id = ctx.channel.id
-    filtered_messages = [msg for msg in snipe_queue if msg[2] == channel_id]
-
-    if not filtered_messages:
-        await ctx.send("No messages to snipe in this channel!")
-        return
-
-    embed = discord.Embed(title="Last 5 Deleted Messages", color=discord.Color.blue())
-    for i, (content, author, _) in enumerate(filtered_messages, 1):
-        embed.add_field(name=f"{i}. {author}", value=content, inline=False)
-
-    await ctx.send(embed=embed)
 
 @bot.command(name='daily')
 async def daily(ctx):
@@ -170,13 +137,12 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("You don't have permission to use this command.")
     else:
-        raise error
+        await ctx.send(f"An error occurred: {error}")
 
 # Disable help command response
 @bot.command(name='help')
 async def help_command(ctx):
-    pass
+    await ctx.send("Help command is disabled.")
 
 keep_alive()  # Keep the bot alive
-
 bot.run(TOKEN)
