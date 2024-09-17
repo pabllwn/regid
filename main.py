@@ -21,6 +21,9 @@ reward_data = {}
 ALLOWED_ROLE_ID = 1285511769447600138
 COOLDOWN_PERIOD = 86400
 
+# Remove the default help command
+bot.remove_command('help')
+
 # Check for admin or role permissions
 def is_admin_or_role():
     def predicate(ctx):
@@ -139,7 +142,7 @@ async def on_command_error(ctx, error):
     else:
         await ctx.send(f"An error occurred: {error}")
 
-# Disable help command response
+# Custom help command
 @bot.command(name='help')
 async def help_command(ctx):
     await ctx.send("Help command is disabled.")
