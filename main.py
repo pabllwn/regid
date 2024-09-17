@@ -1,7 +1,9 @@
 import discord
-import os
 from discord.ext import commands
-from keep_alive import keep_alive  # Import keep_alive
+from collections import deque
+import os
+import datetime
+from keep_alive import keep_alive
 
 intents = discord.Intents.all()
 intents.messages = True
@@ -27,7 +29,7 @@ def is_admin_or_role():
 @bot.event
 async def on_ready():
     print(f'Logged in as {bot.user}')
-    
+
 @bot.command(name='setlogchannel')
 @is_admin_or_role()
 async def set_log_channel(ctx, channel: discord.TextChannel):
