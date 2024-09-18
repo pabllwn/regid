@@ -130,7 +130,7 @@ async def daily(ctx):
     await asyncio.sleep(180)
     await message.delete()
 
-@bot.command(name='setrewards<a:tada:1285756673000083477>')
+@bot.command(name='setrewards')
 @is_admin_or_role()
 async def set_rewards(ctx, *rewards):
     today = datetime.date.today()
@@ -202,3 +202,4 @@ async def help_command(ctx):
 
 keep_alive()  # Keep the bot alive
 bot.run(TOKEN)
+        
