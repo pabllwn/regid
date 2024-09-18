@@ -103,12 +103,12 @@ async def daily(ctx):
         return
 
     if not user_rewards:
-        await ctx.send("No rewards available to claim.")
+        await ctx.send("No rewards available to claim<a:done:1285756541676421151>.")
         return
 
     # Prepare embed
     embed = discord.Embed(
-        title="🎁 Daily Rewards",
+        title="<a:Gift:1285755999399186495> Daily Rewards",
         description=f"Available rewards: {', '.join(user_rewards)}",
         color=discord.Color.green()
     )
@@ -120,7 +120,7 @@ async def daily(ctx):
         label="Claim Reward",
         style=discord.ButtonStyle.primary,
         custom_id="claim_reward",
-        emoji="<a:11pm_gift:1263184546049082498>"
+        emoji="<a:Gift:1285755999399186495>"
     )
     view.add_item(button)
 
@@ -130,7 +130,7 @@ async def daily(ctx):
     await asyncio.sleep(180)
     await message.delete()
 
-@bot.command(name='setrewards')
+@bot.command(name='setrewards<a:tada:1285756673000083477>')
 @is_admin_or_role()
 async def set_rewards(ctx, *rewards):
     today = datetime.date.today()
@@ -157,11 +157,11 @@ async def on_interaction(interaction):
         user_rewards = reward_data.get('rewards', [])
 
         if not user_rewards:
-            await interaction.response.send_message("No rewards available.", ephemeral=True)
+            await interaction.response.send_message("No rewards available<a:done:1285756541676421151>.", ephemeral=True)
             return
 
         if (today - last_claims.get(user.id, today - datetime.timedelta(days=1))).total_seconds() < COOLDOWN_PERIOD:
-            await interaction.response.send_message("You must wait 24 hours before claiming another reward.", ephemeral=True)
+            await interaction.response.send_message("You must wait 24 hours before claiming another reward<a:done:1285756541676421151>.", ephemeral=True)
             return
 
         # Claim a random reward
@@ -174,8 +174,8 @@ async def on_interaction(interaction):
         guild = interaction.guild
         role_mentions = ' '.join([f'<@&{role_id}>' for role_id in MENTION_ROLES])
         embed = discord.Embed(
-            title="🎉 Reward Claimed",
-            description=f"{interaction.user.mention} has claimed a reward: {claimed_reward} <a:11pm_giveaway1:1070822226003234906>",
+            title="<a:tada:1285756673000083477> Reward Claimed",
+            description=f"{interaction.user.mention} has claimed a reward: {claimed_reward} <a:Gift:1285755999399186495>",
             color=discord.Color.blue()
         )
         embed.add_field(name="Reward", value=claimed_reward, inline=False)
@@ -184,7 +184,7 @@ async def on_interaction(interaction):
         # Send the message with role mentions
         await guild.system_channel.send(content=role_mentions, embed=embed)
 
-        await interaction.response.send_message(f"You claimed: {claimed_reward} <a:11pm_sheck:1051708217832513536>", ephemeral=True)
+        await interaction.response.send_message(f"You claimed: {claimed_reward} <a:done:1285756541676421151>", ephemeral=True)
 
 @bot.event
 async def on_command_error(ctx, error):
