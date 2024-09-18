@@ -171,7 +171,6 @@ async def on_interaction(interaction):
         last_claims[user.id] = today
 
         # Notify mentioned roles
-        guild = interaction.guild
         role_mentions = ' '.join([f'<@&{role_id}>' for role_id in MENTION_ROLES])
         embed = discord.Embed(
             title="<a:tada:1285756673000083477> Reward Claimed",
@@ -181,9 +180,13 @@ async def on_interaction(interaction):
         embed.add_field(name="Reward", value=claimed_reward, inline=False)
         embed.add_field(name="Claimed by", value=interaction.user.mention, inline=False)
 
-        # Send the message with role mentions
-        await guild.system_channel.send(content=role_mentions, embed=embed)
+        # Send the message with role mentions in the same chat where the command was issued
+        await interaction.channel.send(content=role_mentions, embed=embed)
 
+        # Delete the original message (the one containing the button) immediately after interaction
+        await interaction.message.delete()
+
+        # Send an ephemeral message confirming the claim
         await interaction.response.send_message(f"You claimed: {claimed_reward} <a:done:1285756541676421151>", ephemeral=True)
 
 @bot.event
@@ -202,4 +205,3 @@ async def help_command(ctx):
 
 keep_alive()  # Keep the bot alive
 bot.run(TOKEN)
-        
