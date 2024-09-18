@@ -126,10 +126,6 @@ async def daily(ctx):
 
     message = await ctx.send(embed=embed, view=view)
 
-    # Delete the message after 3 minutes
-    await asyncio.sleep(180)
-    await message.delete()
-
 @bot.command(name='setrewards')
 @is_admin_or_role()
 async def set_rewards(ctx, *rewards):
@@ -184,7 +180,10 @@ async def on_interaction(interaction):
         await interaction.channel.send(content=role_mentions, embed=embed)
 
         # Delete the original message (the one containing the button) immediately after interaction
-        await interaction.message.delete()
+        try:
+            await interaction.message.delete()
+        except discord.NotFound:
+            print("Message was already deleted.")
 
         # Send an ephemeral message confirming the claim
         await interaction.response.send_message(f"You claimed: {claimed_reward} <a:done:1285756541676421151>", ephemeral=True)
